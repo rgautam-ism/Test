@@ -1,0 +1,54 @@
+USE `intels_brgs`;
+DROP procedure IF EXISTS `report_new_R_SP`;
+
+USE `intels_brgs`;
+DROP procedure IF EXISTS `intels_brgs`.`report_new_R_SP`;
+;
+
+DELIMITER $$
+USE `intels_brgs`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `report_new_R_SP`(    IN _Type INT, 
+    IN _startDate VARCHAR(25),
+    IN _EndDate VARCHAR(25)
+)
+BEGIN
+    DECLARE startDT DATE;
+    DECLARE endDT DATE;
+
+    SET startDT = IF(_startDate = '' OR _startDate IS NULL, '0001-01-01', _startDate);
+    SET endDT   = IF(_EndDate = '' OR _EndDate IS NULL, '0001-01-01', _EndDate);
+
+    IF _Type = 1 THEN
+        SELECT SUM(dclNetPayableAmount) AS intTotalNetPayable, DATE(dttReceiptDate) AS dttReceiptDate,
+		DATE(dttCaptureDate) AS dttCaptureDate
+        FROM fin_receipts
+        WHERE ((startDT = '0001-01-01' OR DATE(dttReceiptDate) >= startDT))
+          AND ((endDT = '0001-01-01' OR DATE(dttReceiptDate) <= endDT))
+        GROUP BY DATE(dttReceiptDate)
+        ORDER BY DATE(dttReceiptDate);
+    END IF;
+
+    IF _Type = 2 THEN
+        SELECT fash.varname AS varAccountSubHead,fla.intPayableId, SUM(fla.dclAdjustAmount) AS intTotalAdjustAmount,
+		DATE(fr.dttReceiptDate) AS dttReceiptDate,DATE(fr.dttCaptureDate) AS dttCaptureDate
+        FROM fin_ledger_account fla
+        JOIN fin_receipts fr ON fr.intid = fla.intReceiptId
+        JOIN fin_payable_account fpa ON fpa.intId = fla.intPayableId
+        JOIN fin_account_sub_head fash ON fash.intId = fpa.intAccountSubHeadId
+        WHERE ((startDT = '0001-01-01' OR DATE(fr.dttReceiptDate) >= startDT))
+		AND ((endDT = '0001-01-01' OR DATE(fr.dttReceiptDate) <= endDT))
+        GROUP BY DATE(fr.dttReceiptDate), fash.intId
+        ORDER BY DATE(fr.dttReceiptDate);
+    END IF;
+END$$
+
+DELIMITER ;
+;
+
+
+
+//data base massubmenu
+'419', '53', 'Report', 'Валюта қосу', 'Добавить валюту', '/Finance/Report', '1', '1', '2024-11-28 16:48:48', 'assets/icons/Report.gif', '2', '3', NULL, NULL, NULL, '1', '1', '1', '0', '1', '1'
+
+
+INSERT INTO `intels_brgs`.`userssubmenu` (`intUserId`, `intMasMainMenuId`, `intMasSubMenuId`, `intPositionId`, `intAccessid`, `intCreatedBy`, `dttCreationDate`, `intActive`) VALUES ('1', '53', '419', '238', '2', '1', '2024-09-06 04:14:37', '1');
